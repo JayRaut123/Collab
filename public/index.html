@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ddox Student Client</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="student-container">
+        <h1 class="title-glow text-primary">DDOX SIMULATOR</h1>
+        
+        <button id="attackBtn" class="attack-btn">
+            SEND PACKET
+            <span>TAP</span>
+        </button>
+
+        <div class="toggle-container">
+            <input type="checkbox" id="burstMode" class="toggle-switch">
+            <label for="burstMode">BURST MODE (Hold to spam)</label>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat-row">
+                <span>My Packets Sent:</span>
+                <span id="localCounter" class="text-secondary font-bold">0</span>
+            </div>
+            <div class="stat-row">
+                <span>Target Node:</span>
+                <span class="text-warning font-mono" id="targetIpDisplay">192.168.x.x</span>
+            </div>
+            <div class="stat-row">
+                <span>Payload Signature:</span>
+                <span class="text-warning font-mono">0x4A 0x8F 0x00</span>
+            </div>
+            <div class="stat-row">
+                <span>Target Status:</span>
+                <span id="targetStatus" class="text-secondary">ONLINE</span>
+            </div>
+        </div>
+
+        <div id="studentTerminal" class="terminal-feed">
+            <!-- Outbound logs go here -->
+            <div class="terminal-line"><span class="tx">SYS >></span> READY TO TRANSMIT</div>
+        </div>
+    </div>
+
+    <div id="crashOverlay" class="crash-overlay">
+        <h1>HTTP 503</h1>
+        <p class="font-mono">TARGET SYSTEM OFFLINE</p>
+    </div>
+
+    <script src="student.js"></script>
+</body>
+</html>
