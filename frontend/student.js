@@ -61,9 +61,18 @@ function addOutboundLog() {
     studentTerminal.scrollTop = studentTerminal.scrollHeight;
 }
 
-async function sendPacket() {
-    if (isCrashed) return;
+function addBlockedLog(strategy) {
+    const div = document.createElement('div');
+    div.className = 'terminal-line text-warning';
+    div.innerHTML = `<span class="tx">[BLOCKED]</span> 429 DROP | ${(strategy || 'WAF').toUpperCase()} ACTIVE`;
+    studentTerminal.appendChild(div);
+    if (studentTerminal.children.length > 20) {
+        studentTerminal.removeChild(studentTerminal.firstChild);
+    }
+    studentTerminal.scrollTop = studentTerminal.scrollHeight;
+}
 
+async function sendPacket() {
     localCounter++;
     localCounterEl.innerText = localCounter;
     
@@ -74,15 +83,28 @@ async function sendPacket() {
     try {
         const response = await fetch('/event', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true'
+            },
             body: JSON.stringify({ studentId })
         });
         
         if (response.status === 503) {
             handleCrash();
         } else {
+            // Restore from crash if server is back up or defended
+            if (isCrashed) {
+                isCrashed = false;
+                crashOverlay.classList.remove('active');
+            }
+
             const data = await response.json();
-            if (data.latency > 100) {
+            if (data.mitigated) {
+                targetStatusEl.innerText = `BLOCKED (${(data.strategy || 'SHIELD').toUpperCase()})`;
+                targetStatusEl.className = 'text-warning';
+                addBlockedLog(data.strategy);
+            } else if (data.latency > 100) {
                 targetStatusEl.innerText = 'DEGRADED';
                 targetStatusEl.className = 'text-warning';
             } else {
@@ -91,6 +113,7 @@ async function sendPacket() {
             }
         }
     } catch (e) {
+        console.error('Error sending packet:', e);
         handleCrash();
     }
 }
@@ -104,7 +127,7 @@ function handleCrash() {
     
     const div = document.createElement('div');
     div.className = 'terminal-line text-critical';
-    div.innerHTML = `[ERROR] CONNECTION TIMEOUT`;
+    div.innerHTML = `[ERROR] TARGET NODE OFFLINE (HTTP 503)`;
     studentTerminal.appendChild(div);
     studentTerminal.scrollTop = studentTerminal.scrollHeight;
 
@@ -114,15 +137,28 @@ function handleCrash() {
     }
 }
 
-// Check if server is back online
+// Active State Sync Polling (Every 500ms)
 setInterval(async () => {
-    if (isCrashed) {
-        try {
-            const res = await fetch('/stats');
-            const data = await res.json();
-            if (!data.crashed) {
-                isCrashed = false;
-                crashOverlay.classList.remove('active');
+    try {
+        const res = await fetch('/stats', {
+            headers: { 'Bypass-Tunnel-Reminder': 'true' }
+        });
+        const data = await res.json();
+
+        if (!data.crashed && isCrashed) {
+            isCrashed = false;
+            crashOverlay.classList.remove('active');
+
+            if (data.mitigated) {
+                targetStatusEl.innerText = `SHIELDED (${(data.mitigationStrategy || 'WAF').toUpperCase()})`;
+                targetStatusEl.className = 'text-warning';
+                
+                const div = document.createElement('div');
+                div.className = 'terminal-line text-warning';
+                div.innerHTML = `[SYS] DEFENSE SHIELD ACTIVE - ATTACK RESUMED`;
+                studentTerminal.appendChild(div);
+                studentTerminal.scrollTop = studentTerminal.scrollHeight;
+            } else {
                 targetStatusEl.innerText = 'ONLINE';
                 targetStatusEl.className = 'text-secondary';
                 localCounter = 0;
@@ -130,19 +166,20 @@ setInterval(async () => {
                 
                 const div = document.createElement('div');
                 div.className = 'terminal-line text-secondary';
-                div.innerHTML = `[SYS] CONNECTION RESTORED`;
+                div.innerHTML = `[SYS] SERVER REBOOTED - READY TO TRANSMIT`;
                 studentTerminal.appendChild(div);
                 studentTerminal.scrollTop = studentTerminal.scrollHeight;
             }
-        } catch(e){}
-    }
-}, 1000);
+        } else if (data.crashed && !isCrashed) {
+            handleCrash();
+        }
+    } catch(e) {}
+}, 500);
 
 // Interaction logic
 const startAttack = (e) => {
     e.preventDefault();
     initAudio();
-    if (isCrashed) return;
     
     sendPacket();
     

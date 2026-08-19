@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ddox NOC - Cyber Threat Operations Center</title>
+    <link rel="stylesheet" href="style.css?v=2.6">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="noc-container" id="nocContainer">
+        <!-- Top Header Bar -->
+        <header class="noc-header">
+            <div class="header-left">
+                <div class="brand-title">
+                    <span class="pulse-live"></span>
+                    <h1>CYBER THREAT OPERATIONS CENTER</h1>
+                </div>
+                <div id="threatLevelBadge" class="threat-level-badge level-normal font-mono">
+                    THREAT: <span id="threatLevelText">DEFCON 5 [NORMAL]</span>
+                </div>
+                <div id="defenseBadge" class="defense-badge" style="display: none;">
+                    <span class="badge-pulse"></span>
+                    <span id="defenseBadgeText">SHIELD ACTIVE</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="fullscreenBtn" class="header-btn" title="Toggle Fullscreen">⛶ Fullscreen</button>
+                <button id="openManualDefenseBtn" class="header-btn btn-defense">🛡️ Defense Console</button>
+                <button id="resetBtn" class="header-btn btn-reset">🔄 Reset Server</button>
+            </div>
+        </header>
+
+        <!-- Top KPI Stats Row -->
+        <section class="kpi-grid">
+            <div class="card kpi-card">
+                <div class="kpi-label font-mono">CURRENT REQUESTS/SEC</div>
+                <div id="rpsValue" class="big-number text-secondary">0</div>
+                <div class="kpi-sub font-mono"><span id="bandwidthValue">0.0</span> KB/s Ingress</div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label font-mono">TOTAL PACKETS INGESTED</div>
+                <div id="totalPacketsValue" class="big-number text-primary">0</div>
+                <div class="kpi-sub font-mono">Payload Sig: <span class="text-warning">0x4A 0x8F</span></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label font-mono">ACTIVE BOTNET NODES</div>
+                <div id="activeStudentsValue" class="big-number text-warning">0</div>
+                <div class="kpi-sub font-mono"><span id="attackVectorText">HTTP/2 Packet Floods</span></div>
+            </div>
+            <div class="card kpi-card">
+                <div class="kpi-label font-mono">TARGET SYSTEM LOAD</div>
+                <div id="healthKpiValue" class="big-number text-secondary">35%</div>
+                <div class="kpi-sub font-mono">Status: <span id="targetStatusText" class="text-secondary">NORMAL (35%)</span></div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Body -->
+        <section class="dashboard-body">
+            <!-- Left Column: Big Cyber Threat Simulation Map + Latency Chart -->
+            <div class="simulation-column">
+                <!-- Big Attack Vector Simulation Card -->
+                <div class="card big-simulation-card">
+                    <div class="card-header-flex">
+                        <h2>🌐 Live Global Attack Vector Simulation</h2>
+                        <div class="sim-meta font-mono">
+                            <span class="dot-green"></span> TARGET: <span class="text-secondary">NODE-ALPHA (192.168.1.1)</span>
+                        </div>
+                    </div>
+                    <div class="simulation-canvas-container">
+                        <canvas id="attackMapCanvas" class="attack-map-canvas"></canvas>
+                        <div class="hud-overlay hud-top-left font-mono">
+                            <div>DEFENSE MATRIX: <span id="hudShieldStatus" class="text-secondary">STANDBY</span></div>
+                            <div>INGRESS SCRUBBER: <span id="hudFilterStatus">OFFLINE</span></div>
+                        </div>
+                        <div class="hud-overlay hud-bottom-right font-mono">
+                            <span id="activeAttackersCount">0</span> NODES TRANSMITTING
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latency Dynamics Chart -->
+                <div class="card chart-card">
+                    <div class="card-header-flex">
+                        <h2>Live Latency Dynamics (ms)</h2>
+                        <div class="font-mono text-secondary" style="font-size: 0.85rem;">
+                            LATENCY: <span id="currentLatencyDisplay">35</span> ms
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="latencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Pro Cyber Terminal & System Resources -->
+            <div class="terminal-column">
+                <!-- Pro Hacker Terminal -->
+                <div class="card pro-terminal-card">
+                    <div class="terminal-topbar">
+                        <div class="terminal-traffic-lights">
+                            <span class="t-dot red"></span>
+                            <span class="t-dot yellow"></span>
+                            <span class="t-dot green"></span>
+                        </div>
+                        <div class="terminal-title font-mono">
+                            <span class="terminal-stream-dot"></span> root@soc-threat-stream: ~/live_traffic.log
+                        </div>
+                        <div class="terminal-actions">
+                            <button id="pauseTerminalBtn" class="t-btn font-mono" title="Pause Stream">PAUSE</button>
+                            <button id="clearTerminalBtn" class="t-btn font-mono" title="Clear Terminal">CLEAR</button>
+                        </div>
+                    </div>
+                    <div class="terminal-stream-bar">
+                        <div id="streamPulse" class="stream-pulse"></div>
+                    </div>
+                    <div id="terminalFeed" class="pro-terminal-feed font-mono">
+                        <!-- High-tech color-coded logs stream here -->
+                    </div>
+                    <div class="terminal-footer font-mono">
+                        <span class="cursor-prompt">INGRESS_DAEMON >></span>
+                        <span class="terminal-cursor">█</span>
+                    </div>
+                </div>
+
+                <!-- System Resources Monitor -->
+                <div class="card resources-card">
+                    <h2>Target Infrastructure Telemetry</h2>
+                    
+                    <div class="resource-row font-mono">
+                        <span class="text-secondary">SYSTEM LOAD / STRESS</span>
+                        <span id="healthText" class="text-secondary">35%</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div id="healthBar" class="health-bar"></div>
+                    </div>
+
+                    <div class="resource-row font-mono" style="margin-top: 10px;">
+                        <span class="text-warning">CPU SATURATION</span>
+                        <span id="cpuText" class="text-warning">1%</span>
+                    </div>
+                    <div class="resource-bar-container">
+                        <div id="cpuBar" class="resource-bar"></div>
+                    </div>
+
+                    <div class="resource-row font-mono" style="margin-top: 10px;">
+                        <span class="text-warning">MEMORY ALLOCATION</span>
+                        <span id="ramText" class="text-warning">14%</span>
+                    </div>
+                    <div class="resource-bar-container">
+                        <div id="ramBar" class="resource-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Enhanced Crash Overlay -->
+    <div id="crashOverlay" class="crash-overlay">
+        <div class="crash-card">
+            <div class="crash-icon">⚠️</div>
+            <h1 class="font-mono">HTTP 503 SERVICE UNAVAILABLE</h1>
+            <p class="crash-title font-mono text-primary">CRITICAL DDOS COLLAPSE DETECTED</p>
+            <p class="crash-subtitle font-mono">
+                Target node overwhelmed by volumetric request flood. Server resources exhausted.
+            </p>
+            <div class="crash-actions">
+                <button id="openMitigationBtn" class="btn-deploy-defense">
+                    🛡️ DEPLOY DDOS DEFENSE PROTOCOLS
+                </button>
+                <button id="quickRebootBtn" class="btn-quick-reboot">
+                    🔄 Reboot Server
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive DDoS Mitigation Modal -->
+    <div id="mitigationModal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <span class="badge-tag">INCIDENT RESPONSE</span>
+                    <h2>DDoS Mitigation Control Center</h2>
+                </div>
+                <button id="closeModalBtn" class="modal-close-btn">&times;</button>
+            </div>
+
+            <p class="modal-subtitle font-mono">
+                Select an architectural defense strategy to mitigate the attack and restore target server health:
+            </p>
+
+            <div class="strategies-grid">
+                <!-- Strategy 1: WAF -->
+                <div class="strategy-card" data-strategy="waf">
+                    <div class="strategy-badge">+50 REQ CAPACITY</div>
+                    <div class="strategy-icon">⚡</div>
+                    <h3>WAF Rate Limiting & Signature Filter</h3>
+                    <p class="strategy-desc">
+                        Enforces token bucket rate limiting (max 10 req/s per IP), inspects malicious packet signatures (<code>0x4A 0x8F</code>), and dynamically blacklists attacker bot subnets.
+                    </p>
+                    <ul class="strategy-specs font-mono">
+                        <li><span>Capacity:</span> +50 Requests (100 Max)</li>
+                        <li><span>Protection:</span> HTTP/Flood Filters</li>
+                        <li><span>Overhead:</span> Very Low</li>
+                    </ul>
+                    <button class="btn-strategy-action" data-strategy="waf">
+                        ⚡ ACTIVATE WAF (+50 REQS)
+                    </button>
+                </div>
+
+                <!-- Strategy 2: CDN / Cloud Scrubbing -->
+                <div class="strategy-card" data-strategy="cdn">
+                    <div class="strategy-badge">+50 REQ CAPACITY</div>
+                    <div class="strategy-icon">🌐</div>
+                    <h3>Cloud Scrubbing & CAPTCHA Challenge</h3>
+                    <p class="strategy-desc">
+                        Reroutes incoming traffic through global Edge Proxy scrubbing centers. Issues cryptographic JS/CAPTCHA challenges to filter automated botnet requests.
+                    </p>
+                    <ul class="strategy-specs font-mono">
+                        <li><span>Capacity:</span> +50 Requests (100 Max)</li>
+                        <li><span>Protection:</span> Botnet & Layer 7</li>
+                        <li><span>Overhead:</span> Edge Proxied</li>
+                    </ul>
+                    <button class="btn-strategy-action" data-strategy="cdn">
+                        🌐 DEPLOY CLOUD SCRUBBING (+50 REQS)
+                    </button>
+                </div>
+
+                <!-- Strategy 3: Anycast DNS & BGP Blackholing -->
+                <div class="strategy-card" data-strategy="anycast">
+                    <div class="strategy-badge">+100 REQ CAPACITY</div>
+                    <div class="strategy-icon">🛡️</div>
+                    <h3>Anycast DNS & BGP Null-Routing</h3>
+                    <p class="strategy-desc">
+                        Distributes volumetric traffic across 200+ global Anycast edge nodes and signals upstream Tier-1 ISPs to blackhole malicious subnet CIDR blocks.
+                    </p>
+                    <ul class="strategy-specs font-mono">
+                        <li><span>Capacity:</span> +100 Requests (150 Max)</li>
+                        <li><span>Protection:</span> Volumetric Floods</li>
+                        <li><span>Overhead:</span> Zero Origin Load</li>
+                    </ul>
+                    <button class="btn-strategy-action" data-strategy="anycast">
+                        🛡️ ENGAGE ANYCAST SHIELD (+100 REQS)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upgraded Pro Cyber Defense Deployment Terminal -->
+            <div id="deploymentProgress" class="deployment-panel" style="display: none;">
+                <div class="deploy-terminal-window">
+                    <div class="deploy-terminal-header">
+                        <div class="deploy-traffic-lights">
+                            <span class="d-dot red"></span>
+                            <span class="d-dot yellow"></span>
+                            <span class="d-dot green"></span>
+                        </div>
+                        <div class="deploy-terminal-title font-mono">
+                            <span class="pulse-live"></span> <span id="deployTitleText">DEPLOYING PROTOCOL: WAF_L7_FILTER</span>
+                        </div>
+                        <div class="deploy-terminal-meta font-mono">
+                            <span id="deployPercentText" class="text-secondary font-bold">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="deploy-matrix-stream font-mono" id="deployMatrixStream">
+                        <!-- Live streaming hex packets & kernel bytecode -->
+                    </div>
+
+                    <div class="deploy-bar-container">
+                        <div id="deployBar" class="deploy-bar"></div>
+                    </div>
+
+                    <div class="deploy-status-badge-row font-mono">
+                        <div class="status-chip"><span class="chip-dot"></span> PIPELINE: <span class="text-secondary" id="chipKernel">eBPF / XDP KERNEL</span></div>
+                        <div class="status-chip"><span class="chip-dot"></span> SIGNATURE: <span class="text-warning">0x4A 0x8F [MATCH]</span></div>
+                        <div class="status-chip"><span class="chip-dot"></span> TARGET: <span class="text-secondary">NODE-ALPHA</span></div>
+                    </div>
+
+                    <div id="deployLogs" class="deploy-logs font-mono">
+                        <!-- High-tech color-coded log lines -->
+                    </div>
+
+                    <div class="deploy-terminal-footer font-mono">
+                        <span class="text-secondary font-bold">ROOT_DAEMON >> </span>
+                        <span id="deployStepText">INITIALIZING KERNEL DEFENSE PIPELINE...</span>
+                        <span class="terminal-cursor">█</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="noc.js"></script>
+</body>
+</html>
