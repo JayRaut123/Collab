@@ -12,6 +12,15 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Prevent caching on API endpoints
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
 
 // Serve static frontend files
 const frontendDir = path.join(__dirname, '../frontend');
@@ -186,8 +195,8 @@ setInterval(() => {
 // API: Event
 // ============================================================
 
-app.post('/event', (req, res) => {
-    const studentId = req.body.studentId || req.ip;
+const handleEvent = (req, res) => {
+    const studentId = req.body?.studentId || req.query?.studentId || req.ip;
 
     studentTracker.set(
         studentId,
@@ -271,26 +280,33 @@ app.post('/event', (req, res) => {
         totalPackets: state.totalPackets,
         crashThreshold: state.crashThreshold
     });
-});
+};
+
+app.post('/event', handleEvent);
+app.post('/api/event', handleEvent);
+app.get('/event', handleEvent);
 
 // ============================================================
 // API: Stats
 // ============================================================
 
-app.get('/stats', (req, res) => {
+const handleStats = (req, res) => {
     res.json(state);
-});
+};
+
+app.get('/stats', handleStats);
+app.get('/api/stats', handleStats);
 
 // ============================================================
 // API: Mitigate
 // ============================================================
 
-app.post('/mitigate', (req, res) => {
-    const { strategy } = req.body;
+const handleMitigate = (req, res) => {
+    const strategy = req.body?.strategy || req.query?.strategy || 'waf';
 
     state.crashed = false;
     state.mitigated = true;
-    state.mitigationStrategy = strategy || 'waf';
+    state.mitigationStrategy = strategy;
     state.mitigateBasePackets = state.totalPackets;
 
     // ========================================================
@@ -339,13 +355,15 @@ app.post('/mitigate', (req, res) => {
         success: true,
         state
     });
-});
+};
+
+app.all(['/mitigate', '/api/mitigate'], handleMitigate);
 
 // ============================================================
 // API: Reset
 // ============================================================
 
-app.post('/reset', (req, res) => {
+const handleReset = (req, res) => {
     state = {
         totalPackets: 0,
         currentRPS: 0,
@@ -366,7 +384,9 @@ app.post('/reset', (req, res) => {
         success: true,
         state
     });
-});
+};
+
+app.all(['/reset', '/api/reset'], handleReset);
 
 // ============================================================
 // Helper: Get Public IP

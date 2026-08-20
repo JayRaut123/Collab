@@ -657,21 +657,41 @@ function updateDefenseBadgeUI(strategy) {
 // Modal open/close handlers
 openMitigationBtn.addEventListener('click', () => {
     initAudio();
+    deploymentProgress.style.display = 'none';
+    strategyButtons.forEach(b => b.disabled = false);
     mitigationModal.style.display = 'flex';
 });
 
 openManualDefenseBtn.addEventListener('click', () => {
     initAudio();
+    deploymentProgress.style.display = 'none';
+    strategyButtons.forEach(b => b.disabled = false);
     mitigationModal.style.display = 'flex';
 });
 
 closeModalBtn.addEventListener('click', () => {
     if (!isDeploying) {
         mitigationModal.style.display = 'none';
+        deploymentProgress.style.display = 'none';
     }
 });
 
-// Interactive Strategy Deployment Action with Rich Terminal Animation
+// Close modal when clicking outside (backdrop) or pressing Escape
+mitigationModal.addEventListener('click', (e) => {
+    if (e.target === mitigationModal && !isDeploying) {
+        mitigationModal.style.display = 'none';
+        deploymentProgress.style.display = 'none';
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !isDeploying && mitigationModal.style.display === 'flex') {
+        mitigationModal.style.display = 'none';
+        deploymentProgress.style.display = 'none';
+    }
+});
+
+// Interactive Strategy Deployment Action with Rapid Cyber Terminal Animation
 const strategyDetails = {
     waf: {
         name: 'WAF Layer-7 Rate Limiter',
@@ -723,6 +743,19 @@ async function deployDefenseStrategy(strategy) {
     isDeploying = true;
     initAudio();
 
+    // 1. Immediately send mitigation request to backend for zero-delay defense activation
+    const mitigatePromise = fetch('/mitigate', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Bypass-Tunnel-Reminder': 'true'
+        },
+        body: JSON.stringify({ strategy })
+    }).catch(err => {
+        console.error('Error applying mitigation on server:', err);
+        return null;
+    });
+
     const info = strategyDetails[strategy] || strategyDetails.waf;
     deploymentProgress.style.display = 'block';
     deployTitleText.innerText = info.title;
@@ -733,15 +766,16 @@ async function deployDefenseStrategy(strategy) {
 
     strategyButtons.forEach(b => b.disabled = true);
 
-    // Live matrix hex code generator
+    // Fast live matrix hex code generator
     let matrixInterval = setInterval(() => {
         let hexes = [];
         for (let k = 0; k < 12; k++) {
             hexes.push('0x' + Math.floor(Math.random()*256).toString(16).toUpperCase().padStart(2, '0'));
         }
         deployMatrixStream.innerText = `[STREAM] ${hexes.join(' ')} | INGRESS_HOOK >> PACKET_INSPECT()`;
-    }, 80);
+    }, 40);
 
+    // Snappy, high-speed step animation (~90ms per step = ~450ms total)
     for (let i = 0; i < info.steps.length; i++) {
         const step = info.steps[i];
         const percent = Math.round(((i + 1) / info.steps.length) * 100);
@@ -759,56 +793,47 @@ async function deployDefenseStrategy(strategy) {
         deployLogs.appendChild(logLine);
         deployLogs.scrollTop = deployLogs.scrollHeight;
 
-        playTone(350 + (i * 140), 'sine', 0.12, 0.15);
-        await new Promise(r => setTimeout(r, 650));
+        playTone(400 + (i * 120), 'sine', 0.08, 0.12);
+        await new Promise(r => setTimeout(r, 90));
     }
 
     clearInterval(matrixInterval);
-    deployMatrixStream.innerText = `[STATUS: READY] 100% TRAFFIC SCRUBBED | ORIGIN HEALTH: 98% (NORMAL)`;
+    deployMatrixStream.innerText = `[STATUS: ACTIVE] 100% TRAFFIC SCRUBBED | ORIGIN HEALTH: 98% (NORMAL)`;
 
-    try {
-        const res = await fetch('/mitigate', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Bypass-Tunnel-Reminder': 'true'
-            },
-            body: JSON.stringify({ strategy })
-        });
-        await res.json();
-        
-        isMitigated = true;
-        activeStrategy = strategy;
-        crashed = false;
-        crashOverlay.classList.remove('active');
-        updateDefenseBadgeUI(strategy);
+    // Wait for server response (usually already resolved)
+    await mitigatePromise;
 
-        playSuccessChime();
+    // Instantly update UI state
+    isMitigated = true;
+    activeStrategy = strategy;
+    crashed = false;
+    crashOverlay.classList.remove('active');
+    updateDefenseBadgeUI(strategy);
 
-        addProLogEntry(false, `🛡️ [DEFENSE ACTIVATED] ${info.name.toUpperCase()}`);
-        addProLogEntry(false, `[DEFENSE] Target System Stabilized - Health: 98% | Latency: ~30ms`);
+    playSuccessChime();
 
-        latencyChart.data.datasets[0].borderColor = '#00ffcc';
-        latencyChart.data.datasets[0].backgroundColor = 'rgba(0, 255, 204, 0.08)';
-        nocContainer.classList.remove('glitch');
+    addProLogEntry(false, `🛡️ [DEFENSE ACTIVATED] ${info.name.toUpperCase()}`);
+    addProLogEntry(false, `[DEFENSE] Target System Stabilized - Health: 98% | Latency: ~30ms`);
 
-        await new Promise(r => setTimeout(r, 900));
-        mitigationModal.style.display = 'none';
-        deploymentProgress.style.display = 'none';
-        
-    } catch(err) {
-        console.error('Error applying mitigation:', err);
-    } finally {
-        isDeploying = false;
-        strategyButtons.forEach(b => b.disabled = false);
-    }
+    latencyChart.data.datasets[0].borderColor = '#00ffcc';
+    latencyChart.data.datasets[0].backgroundColor = 'rgba(0, 255, 204, 0.08)';
+    nocContainer.classList.remove('glitch');
+
+    // Quick auto-close of modal after successful deployment
+    await new Promise(r => setTimeout(r, 250));
+    mitigationModal.style.display = 'none';
+    deploymentProgress.style.display = 'none';
+    isDeploying = false;
+    strategyButtons.forEach(b => b.disabled = false);
+
+    // Sync immediately with backend
+    await fetchStats().catch(() => {});
 }
 
 // Quick Reboot Handler
 quickRebootBtn.addEventListener('click', async () => {
     initAudio();
     await resetServer();
-    crashOverlay.classList.remove('active');
 });
 
 resetBtn.addEventListener('click', async () => {
@@ -818,24 +843,85 @@ resetBtn.addEventListener('click', async () => {
 
 async function resetServer() {
     try {
-        await fetch('/reset', { 
+        resetBtn.style.opacity = '0.6';
+        quickRebootBtn.style.opacity = '0.6';
+
+        // 1. Send reset request to backend
+        const res = await fetch('/reset', { 
             method: 'POST',
-            headers: { 'Bypass-Tunnel-Reminder': 'true' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true' 
+            }
         });
+        await res.json().catch(() => null);
+
+        // 2. Reset internal variables
+        crashed = false;
+        isMitigated = false;
+        activeStrategy = null;
+        isDeploying = false;
+        attackParticles = [];
+        impactSparks = [];
+        userScrolledUp = false;
+
+        // 3. Reset DOM and modals
+        crashOverlay.classList.remove('active');
+        mitigationModal.style.display = 'none';
+        deploymentProgress.style.display = 'none';
+        defenseBadge.style.display = 'none';
+        strategyButtons.forEach(b => b.disabled = false);
+        nocContainer.classList.remove('glitch');
+
+        // 4. Reset Latency Chart
         latencyChart.data.datasets[0].data = Array(MAX_DATA_POINTS).fill(40);
         latencyChart.data.datasets[0].borderColor = '#00ffcc';
         latencyChart.data.datasets[0].backgroundColor = 'rgba(0, 255, 204, 0.08)';
         latencyChart.update();
+
+        // 5. Clear Terminal Feed
         terminalFeed.innerHTML = '';
-        nocContainer.classList.remove('glitch');
-        defenseBadge.style.display = 'none';
-        isMitigated = false;
-        activeStrategy = null;
-        crashed = false;
-        crashOverlay.classList.remove('active');
+
+        // 6. Reset all KPIs and telemetry displays immediately
+        rpsValue.innerText = '0';
+        totalPacketsValue.innerText = '0';
+        activeStudentsValue.innerText = '0';
+        activeAttackersCount.innerText = '0';
+        bandwidthValue.innerText = '0.0';
+        currentLatencyDisplay.innerText = '35';
+
+        healthBar.style.width = '35%';
+        healthBar.style.background = 'linear-gradient(90deg, #00ffcc, #00b38f)';
+        healthBar.style.boxShadow = '0 0 15px var(--secondary-glow)';
+        healthText.innerText = '35%';
+        healthKpiValue.innerText = '35%';
+        healthKpiValue.className = 'big-number text-secondary';
+
+        cpuBar.style.width = '12%';
+        cpuText.innerText = '12%';
+        ramBar.style.width = '20%';
+        ramText.innerText = '20%';
+
+        targetStatusText.innerText = 'NORMAL (35%)';
+        targetStatusText.className = 'text-secondary';
+        threatLevelBadge.className = 'threat-level-badge level-normal font-mono';
+        threatLevelText.innerText = 'DEFCON 5 [NORMAL]';
+
+        hudShieldStatus.innerText = 'STANDBY';
+        hudShieldStatus.className = 'text-warning';
+        hudFilterStatus.innerText = 'NORMAL';
+
         playSuccessChime();
         addProLogEntry(false, '[SYS] Server reboot complete. All telemetry and counters reset to baseline.');
-    } catch(e) {}
+
+        // 7. Re-sync with backend
+        await fetchStats().catch(() => {});
+    } catch(e) {
+        console.error('Error resetting server:', e);
+    } finally {
+        resetBtn.style.opacity = '1';
+        quickRebootBtn.style.opacity = '1';
+    }
 }
 
 

@@ -137,7 +137,10 @@ function handleCrash() {
     }
 }
 
-// Active State Sync Polling (Every 500ms)
+let prevTotalPackets = 0;
+let prevMitigated = false;
+
+// Active State Sync Polling (Every 400ms)
 setInterval(async () => {
     try {
         const res = await fetch('/stats', {
@@ -145,12 +148,36 @@ setInterval(async () => {
         });
         const data = await res.json();
 
-        if (!data.crashed && isCrashed) {
+        // 1. Detect server reset (totalPackets reset to 0 or decreased)
+        const serverWasReset = (data.totalPackets === 0 && prevTotalPackets > 0) || (data.totalPackets < prevTotalPackets);
+
+        if (serverWasReset) {
+            localCounter = 0;
+            localCounterEl.innerText = '0';
+            if (isCrashed) {
+                isCrashed = false;
+                crashOverlay.classList.remove('active');
+            }
+            if (!data.mitigated) {
+                targetStatusEl.innerText = 'ONLINE';
+                targetStatusEl.className = 'text-secondary';
+            }
+            const div = document.createElement('div');
+            div.className = 'terminal-line text-secondary';
+            div.innerHTML = `[SYS] SERVER REBOOTED - READY TO TRANSMIT`;
+            studentTerminal.appendChild(div);
+            studentTerminal.scrollTop = studentTerminal.scrollHeight;
+        }
+
+        // 2. Handle Crash state
+        if (data.crashed && !isCrashed) {
+            handleCrash();
+        } else if (!data.crashed && isCrashed) {
             isCrashed = false;
             crashOverlay.classList.remove('active');
 
             if (data.mitigated) {
-                targetStatusEl.innerText = `SHIELDED (${(data.mitigationStrategy || 'WAF').toUpperCase()})`;
+                targetStatusEl.innerText = `BLOCKED (${(data.mitigationStrategy || 'SHIELD').toUpperCase()})`;
                 targetStatusEl.className = 'text-warning';
                 
                 const div = document.createElement('div');
@@ -162,19 +189,25 @@ setInterval(async () => {
                 targetStatusEl.innerText = 'ONLINE';
                 targetStatusEl.className = 'text-secondary';
                 localCounter = 0;
-                localCounterEl.innerText = localCounter;
-                
-                const div = document.createElement('div');
-                div.className = 'terminal-line text-secondary';
-                div.innerHTML = `[SYS] SERVER REBOOTED - READY TO TRANSMIT`;
-                studentTerminal.appendChild(div);
-                studentTerminal.scrollTop = studentTerminal.scrollHeight;
+                localCounterEl.innerText = '0';
             }
-        } else if (data.crashed && !isCrashed) {
-            handleCrash();
         }
+
+        // 3. Handle live defense activation while not crashed
+        if (data.mitigated && !prevMitigated && !isCrashed && !serverWasReset) {
+            targetStatusEl.innerText = `BLOCKED (${(data.mitigationStrategy || 'SHIELD').toUpperCase()})`;
+            targetStatusEl.className = 'text-warning';
+            const div = document.createElement('div');
+            div.className = 'terminal-line text-warning';
+            div.innerHTML = `[SYS] DEFENSE SHIELD ACTIVE (${(data.mitigationStrategy || 'SHIELD').toUpperCase()})`;
+            studentTerminal.appendChild(div);
+            studentTerminal.scrollTop = studentTerminal.scrollHeight;
+        }
+
+        prevTotalPackets = data.totalPackets;
+        prevMitigated = !!data.mitigated;
     } catch(e) {}
-}, 500);
+}, 400);
 
 // Interaction logic
 const startAttack = (e) => {
